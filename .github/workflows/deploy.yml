@@ -1,0 +1,192 @@
+name: Terraform Azure Role-Assignment CI/CD
+
+on:
+  push:
+    branches:
+      - stage
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (dev or prod)"
+        required: true
+        default: "dev"
+      resource:
+        description: 'Which resource to deploy? (vnet, aks, bastion,acr,aks-rbac or all)'
+        required: true
+        default: 'bastion'
+      confirm_apply:
+        description: "Type 'yes' to apply resources"
+        required: true
+        default: "no"
+
+jobs:
+  plan:
+    name: Terraform Plan and Cost Estimate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment ||'dev-plan'}}
+    env:
+      ENV: ${{ github.event.inputs.environment }}
+      #ENV: ${{ github.event.inputs.environment || 'dev' }}
+      # TF_RESOURCE_GROUP: ${{ secrets.TF_RESOURCE_GROUP }}
+      # TF_STORAGE_ACCOUNT: ${{ secrets.TF_STORAGE_ACCOUNT }}
+      # TF_CONTAINER_NAME: ${{ secrets.TF_CONTAINER_NAME }}
+      # TF_KEY: ${{ secrets.TF_KEY }}
+      # ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ env.ENV }}
+    outputs:
+      tfplan-exists: ${{ steps.tfplan.outputs.plan_created }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+         
+      - name: Export ARM environment variables
+        run: |
+          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
+         # echo "ARM_OBJECT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).objectId }}" >> $GITHUB_ENV
+
+
+      # - name: Terraform Init
+      #   run: |
+      #     terraform init \
+      #     -backend-config="resource_group_name=${TF_RESOURCE_GROUP}" \
+      #     -backend-config="storage_account_name=${TF_STORAGE_ACCOUNT}" \
+      #     -backend-config="container_name=${TF_CONTAINER_NAME}" \
+      #     -backend-config="key=${TF_KEY}"
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: tfplan
+        run: |
+          terraform plan -var-file="terraform.tfvars" -out=tfplan.binary
+          terraform show -json tfplan.binary > plan.json
+          echo "plan_created=true" >> $GITHUB_OUTPUT
+
+      - name: Upload Terraform Plan Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-files
+          path: |
+            terraform/environments/${{ env.ENV }}/tfplan.binary
+            terraform/environments/${{ env.ENV }}/plan.json
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2.1.0
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Run Infracost Breakdown with Usage
+        run: |
+          infracost breakdown \
+            --path=plan.json \
+            --format=table \
+            --out-file=infracost-report.txt
+
+      - name: Upload Infracost Report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infracost-report
+          path: terraform/environments/${{ env.ENV }}/infracost-report.txt
+
+      - name: Show Infracost report
+        run: |
+          echo "INFO: Infracost cost breakdown report:"
+          cat infracost-report.txt
+
+  apply:
+    name: Terraform Apply with Approval
+    needs: plan
+    runs-on: ubuntu-latest
+    #environment: ${{ github.event.inputs.environment || 'dev' }}
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      #ENV: ${{ github.event.inputs.environment || 'dev' }}
+      ENV: ${{ github.event.inputs.environment }}
+      # TF_RESOURCE_GROUP: ${{ secrets.TF_RESOURCE_GROUP }}
+      # TF_STORAGE_ACCOUNT: ${{ secrets.TF_STORAGE_ACCOUNT }}
+      # TF_CONTAINER_NAME: ${{ secrets.TF_CONTAINER_NAME }}
+      # TF_KEY: ${{ secrets.TF_KEY }}
+      # ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ env.ENV }}
+    if: github.event_name == 'workflow_dispatch' && 
+        github.event.inputs.confirm_apply == 'yes' &&
+        github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Export ARM environment variables
+        run: |
+          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
+         # echo "ARM_OBJECT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).objectId }}" >> $GITHUB_ENV
+
+      - name: Download Terraform plan files
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-files
+          path: terraform/environments/${{ github.event.inputs.environment }}
+
+      # - name: Terraform Init
+      #   run: |
+      #     terraform init \
+      #     -backend-config="resource_group_name=${TF_RESOURCE_GROUP}" \
+      #     -backend-config="storage_account_name=${TF_STORAGE_ACCOUNT}" \
+      #     -backend-config="container_name=${TF_CONTAINER_NAME}" \
+      #     -backend-config="key=${TF_KEY}"
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply (waits for GitHub Environment approval)
+        #run: terraform apply -auto-approve tfplan.binary
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          RESOURCE="${{ github.event.inputs.resource }}"
+
+          if [ "$RESOURCE" == "vnet" ]; then
+            terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
+          elif [ "$RESOURCE" == "aks" ]; then
+            terraform apply -chdir=terraform/environments/$ENV/aks -auto-approve tfplan.binary
+          elif [ "$RESOURCE" == "bastion" ]; then
+            terraform apply -chdir=terraform/environments/$ENV/bastion -auto-approve tfplan.binary
+          else
+            # apply all modules in order
+            terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
+            terraform apply -chdir=terraform/environments/$ENV/aks -auto-approve tfplan.binary
+            terraform apply -chdir=terraform/environments/$ENV/bastion -auto-approve tfplan.binary
+          fi
