@@ -43,11 +43,13 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Terraform Init
+        run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
 
       # - name: Terraform Init
       #   run: terraform init
-      - name: Terraform Init
-        run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
+      # - name: Terraform Init
+      #   run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
       
       - name: Terraform Validate
         run: terraform validate
