@@ -23,8 +23,7 @@ jobs:
   plan:
     name: Terraform Plan and Cost Estimate
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.ENV }}   
-
+    #environment: ${{ github.event.inputs.ENV }}   
     env:
       ENV: ${{ github.event.inputs.ENV }}
       RESOURCE: ${{ github.event.inputs.RESOURCE }}
