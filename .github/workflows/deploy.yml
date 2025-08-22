@@ -67,12 +67,19 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      # - name: Terraform Plan
+      #   id: tfplan
+      #   run: |
+      #     terraform plan -var-file="terraform.tfvars" -out=tfplan.binary
+      #     terraform show -json tfplan.binary > plan.json
+      #     echo "plan_created=true" >> $GITHUB_OUTPUT
       - name: Terraform Plan
-        id: tfplan
         run: |
-          terraform plan -var-file="terraform.tfvars" -out=tfplan.binary
-          terraform show -json tfplan.binary > plan.json
-          echo "plan_created=true" >> $GITHUB_OUTPUT
+          VAR_FILE="terraform.tfvars"
+          if [ -f "${{ env.RESOURCE }}/terraform.tfvars" ]; then
+          VAR_FILE="${{ env.RESOURCE }}/terraform.tfvars"
+          fi
+          terraform plan -var-file="$VAR_FILE" -out=tfplan.binary
 
       - name: Upload Terraform Plan Files
         uses: actions/upload-artifact@v4
@@ -153,20 +160,29 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply (waits for GitHub Environment approval)
-        run: |
-          ENV="${{ github.event.inputs.ENV }}"
-          RESOURCE="${{ github.event.inputs.RESOURCE }}"
+      # - name: Terraform Apply (waits for GitHub Environment approval)
+      #   run: |
+      #     ENV="${{ github.event.inputs.ENV }}"
+      #     RESOURCE="${{ github.event.inputs.RESOURCE }}"
 
-          if [ "$RESOURCE" == "vnet" ]; then
-            terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
-          elif [ "$RESOURCE" == "aks" ]; then
-            terraform apply -chdir=terraform/environments/$ENV/aks -auto-approve tfplan.binary
-          elif [ "$RESOURCE" == "bastion" ]; then
-            terraform apply -chdir=terraform/environments/$ENV/bastion -auto-approve tfplan.binary
-          else
-            # apply all modules in order
-            terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
-            terraform apply -chdir=terraform/environments/$ENV/aks -auto-approve tfplan.binary
-            terraform apply -chdir=terraform/environments/$ENV/bastion -auto-approve tfplan.binary
+      #     if [ "$RESOURCE" == "vnet" ]; then
+      #       terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
+      #     elif [ "$RESOURCE" == "aks" ]; then
+      #       terraform apply -chdir=terraform/environments/$ENV/aks -auto-approve tfplan.binary
+      #     elif [ "$RESOURCE" == "bastion" ]; then
+      #       terraform apply -chdir=terraform/environments/$ENV/bastion -auto-approve tfplan.binary
+      #     else
+      #       # apply all modules in order
+      #       terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
+      #       terraform apply -chdir=terraform/environments/$ENV/aks -auto-approve tfplan.binary
+      #       terraform apply -chdir=terraform/environments/$ENV/bastion -auto-approve tfplan.binary
+      #     fi
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event.inputs.confirm_apply == 'yes'
+        run: |
+          VAR_FILE="terraform.tfvars"
+          if [ -f "${{ env.RESOURCE }}/terraform.tfvars" ]; then
+          VAR_FILE="${{ env.RESOURCE }}/terraform.tfvars"
           fi
+          terraform apply -var-file="$VAR_FILE" -auto-approve tfplan.binary
