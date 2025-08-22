@@ -26,12 +26,7 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
     env:
       ENV: ${{ github.event.inputs.environment }}
-      #ENV: ${{ github.event.inputs.environment || 'dev' }}
-      # TF_RESOURCE_GROUP: ${{ secrets.TF_RESOURCE_GROUP }}
-      # TF_STORAGE_ACCOUNT: ${{ secrets.TF_STORAGE_ACCOUNT }}
-      # TF_CONTAINER_NAME: ${{ secrets.TF_CONTAINER_NAME }}
-      # TF_KEY: ${{ secrets.TF_KEY }}
-      # ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
+      
     defaults:
       run:
         working-directory: terraform/environments/${{ env.ENV }}
@@ -53,22 +48,13 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
         
          
-      - name: Export ARM environment variables
-        run: |
-          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
-         # echo "ARM_OBJECT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).objectId }}" >> $GITHUB_ENV
-
-
-      # - name: Terraform Init
+      # - name: Export ARM environment variables
       #   run: |
-      #     terraform init \
-      #     -backend-config="resource_group_name=${TF_RESOURCE_GROUP}" \
-      #     -backend-config="storage_account_name=${TF_STORAGE_ACCOUNT}" \
-      #     -backend-config="container_name=${TF_CONTAINER_NAME}" \
-      #     -backend-config="key=${TF_KEY}"
+      #     echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
+      #     echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
+      #     echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
+      #     echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
+         
       - name: Terraform Init
         run: terraform init
 
@@ -117,16 +103,12 @@ jobs:
     name: Terraform Apply with Approval
     needs: plan
     runs-on: ubuntu-latest
-    #environment: ${{ github.event.inputs.environment || 'dev' }}
+    
     environment: ${{ github.event.inputs.environment }}
     env:
-      #ENV: ${{ github.event.inputs.environment || 'dev' }}
+     
       ENV: ${{ github.event.inputs.environment }}
-      # TF_RESOURCE_GROUP: ${{ secrets.TF_RESOURCE_GROUP }}
-      # TF_STORAGE_ACCOUNT: ${{ secrets.TF_STORAGE_ACCOUNT }}
-      # TF_CONTAINER_NAME: ${{ secrets.TF_CONTAINER_NAME }}
-      # TF_KEY: ${{ secrets.TF_KEY }}
-      # ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
+      
     defaults:
       run:
         working-directory: terraform/environments/${{ env.ENV }}
@@ -148,32 +130,24 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Export ARM environment variables
-        run: |
-          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
-         # echo "ARM_OBJECT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).objectId }}" >> $GITHUB_ENV
-
+      # - name: Export ARM environment variables
+      #   run: |
+      #     echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
+      #     echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
+      #     echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
+      #     echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
+         
       - name: Download Terraform plan files
         uses: actions/download-artifact@v4
         with:
           name: tfplan-files
           path: terraform/environments/${{ github.event.inputs.environment }}
 
-      # - name: Terraform Init
-      #   run: |
-      #     terraform init \
-      #     -backend-config="resource_group_name=${TF_RESOURCE_GROUP}" \
-      #     -backend-config="storage_account_name=${TF_STORAGE_ACCOUNT}" \
-      #     -backend-config="container_name=${TF_CONTAINER_NAME}" \
-      #     -backend-config="key=${TF_KEY}"
+
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Apply (waits for GitHub Environment approval)
-        #run: terraform apply -auto-approve tfplan.binary
         run: |
           ENV="${{ github.event.inputs.environment }}"
           RESOURCE="${{ github.event.inputs.resource }}"
