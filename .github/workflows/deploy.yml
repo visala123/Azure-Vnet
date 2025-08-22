@@ -43,9 +43,16 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # - name: Terraform Init
+      #   run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
       - name: Terraform Init
-        run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
-
+        run: |
+          TF_DIR="terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}"
+          if [ ! -d "$TF_DIR" ]; then
+            echo "ERROR: Terraform directory $TF_DIR does not exist!"
+            exit 1
+          fi
+          terraform -chdir="$TF_DIR" init
       # - name: Terraform Init
       #   run: terraform init
       # - name: Terraform Init
