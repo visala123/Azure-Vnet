@@ -1,4 +1,4 @@
-name: Terraform Azure Role-Assignment CI/CD
+name: Terraform Azure vnet
 
 on:
   push:
