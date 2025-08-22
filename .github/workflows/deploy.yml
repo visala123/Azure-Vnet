@@ -6,11 +6,11 @@ on:
       - stage
   workflow_dispatch:
     inputs:
-      environment:
+      ENV:
         description: "Target environment (dev or prod)"
         required: true
         default: "dev"
-      resource:
+      RESOURCE:
         description: 'Which resource to deploy? (vnet, aks, bastion,acr,aks-rbac or all)'
         required: true
         default: 'bastion'
@@ -23,13 +23,19 @@ jobs:
   plan:
     name: Terraform Plan and Cost Estimate
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ github.event.inputs.ENV }}   
+
     env:
-      ENV: ${{ github.event.inputs.environment }}
+      ENV: ${{ github.event.inputs.ENV }}
+      RESOURCE: ${{ github.event.inputs.RESOURCE }}
+    # environment: ${{ github.event.inputs.environment }}
+    # env:
+    #   ENV: ${{ github.event.inputs.environment }}
       
     defaults:
       run:
-        working-directory: terraform/environments/${{ env.ENV }}
+        # working-directory: terraform/environments/${{ env.ENV }}
+        working-directory: terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}
     outputs:
       tfplan-exists: ${{ steps.tfplan.outputs.plan_created }}
 
@@ -73,8 +79,8 @@ jobs:
         with:
           name: tfplan-files
           path: |
-            terraform/environments/${{ env.ENV }}/tfplan.binary
-            terraform/environments/${{ env.ENV }}/plan.json
+            terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}/tfplan.binary
+            terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}/plan.json
 
       - name: Setup Infracost
         uses: infracost/actions/setup@v2.1.0
@@ -92,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: infracost-report
-          path: terraform/environments/${{ env.ENV }}/infracost-report.txt
+          path: terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}/infracost-report.txt
 
       - name: Show Infracost report
         run: |
@@ -104,14 +110,14 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ github.event.inputs.ENV }}
     env:
      
-      ENV: ${{ github.event.inputs.environment }}
+      ENV: ${{ github.event.inputs.ENV }}
       
     defaults:
       run:
-        working-directory: terraform/environments/${{ env.ENV }}
+        working-directory: terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}
     if: github.event_name == 'workflow_dispatch' && 
         github.event.inputs.confirm_apply == 'yes' &&
         github.ref == 'refs/heads/main'
@@ -141,7 +147,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan-files
-          path: terraform/environments/${{ github.event.inputs.environment }}
+          path: terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}
 
 
       - name: Terraform Init
@@ -149,8 +155,8 @@ jobs:
 
       - name: Terraform Apply (waits for GitHub Environment approval)
         run: |
-          ENV="${{ github.event.inputs.environment }}"
-          RESOURCE="${{ github.event.inputs.resource }}"
+          ENV="${{ github.event.inputs.ENV }}"
+          RESOURCE="${{ github.event.inputs.RESOURCE }}"
 
           if [ "$RESOURCE" == "vnet" ]; then
             terraform apply -chdir=terraform/environments/$ENV/vnet -auto-approve tfplan.binary
