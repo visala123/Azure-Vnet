@@ -2,7 +2,7 @@
 location = "eastus"
 
 tags = {
-  environment = "dev"
+  environment = "prod"
   }
   
   # AKS Cluster

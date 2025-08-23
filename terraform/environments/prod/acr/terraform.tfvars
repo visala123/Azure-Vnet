@@ -3,5 +3,5 @@ acr_sku    = "Basic"
 admin_enabled = false
 
 tags = {
-  environment = "dev"
- }
+  environment = "prod"
+}
