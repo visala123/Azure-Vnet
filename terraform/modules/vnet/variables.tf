@@ -6,25 +6,36 @@ variable "address_space"         { type = list(string) }
 # Subnets
 variable "aks_subnet_name"       { type = string }
 variable "aks_subnet_prefixes"   { type = list(string) }
-
 variable "bastion_subnet_name"   { type = string }
 variable "bastion_subnet_prefixes"{ type = list(string) }
 
-# NSG rules (simple & opinionated)
-variable "enable_bastion_ssh_inbound" {
-  type        = bool
-  description = "Allow SSH inbound to Bastion from Internet (lock with source_ranges)"
-  default     = true
-}
-variable "bastion_ssh_source_ranges" {
-  type        = list(string)
-  description = "CIDRs allowed to SSH to Bastion"
-  default     = ["0.0.0.0/0"]
+# NSGs
+variable "aks_sg_name"           { type = string }
+variable "bastion_sg_name"       { type = string }
+
+# NSG rules
+variable "aks_nsg_rules" {
+  type = list(object({
+    name                   = string
+    priority               = number
+    direction              = string
+    access                 = string
+    protocol               = string
+    destination_port_range = string
+    source_address_prefix  = string
+  }))
 }
 
-variable "tags" {
-  type    = map(string)
-  default = {}
+variable "bastion_nsg_rules" {
+  type = list(object({
+    name                   = string
+    priority               = number
+    direction              = string
+    access                 = string
+    protocol               = string
+    destination_port_range = string
+    source_address_prefix  = string
+  }))
 }
 
-
+variable "tags" { type = map(string) }

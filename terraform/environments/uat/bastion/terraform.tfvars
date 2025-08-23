@@ -1,7 +1,7 @@
 location = "eastus"
 
 tags = {
-  environment = "dev"
+  environment = "uat"
  }
 
 bastion_vm_size        = "Standard_B2s"

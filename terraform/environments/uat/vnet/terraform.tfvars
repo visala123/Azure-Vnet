@@ -4,7 +4,7 @@ aks_subnet_prefixes    = ["10.20.1.0/24"]
 bastion_subnet_prefixes= ["10.20.2.0/24"]
 
 tags = {
-  environment = "dev"
+  environment = "uat"
   }
 
 aks_nsg_rules = [

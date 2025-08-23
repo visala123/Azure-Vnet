@@ -19,6 +19,7 @@ variable "grant_network_contributor_on_subnet" {
   default     = true
 }
 
+
 variable "tags" {
   type    = map(string)
   default = {}

@@ -1,4 +1,4 @@
 location               = "eastus"
 tags = {
-  environment = "dev"
+  environment = "uat"
  }
