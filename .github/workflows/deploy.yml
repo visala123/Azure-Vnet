@@ -6,7 +6,8 @@ on:
       environment:
         description: "Target environment (dev or prod)"
         required: true
-        default: "dev"
+        type : environment
+        #default: "dev"
       # RESOURCE:
       #   description: "Which resource to deploy? (vnet, aks, bastion, acr, aks-rbac or all)"
       #   required: true
@@ -19,7 +20,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Deploying to ${{ github.event.inputs.environment }}
+      - run: echo "Deploying to ${{ github.event.inputs.environment }}"
 # jobs:
 #   plan:
 #     name: Terraform Plan and Cost Estimate
