@@ -1,23 +1,20 @@
 name: Terraform Azure vnet
 
 on:
-  # push:
-  #   branches:
-  #     - stage
   workflow_dispatch:
     inputs:
       environment:
         description: "Target environment (dev or prod)"
         required: true
         default: "dev"
-      RESOURCE:
-        description: "Which resource to deploy? (vnet, aks, bastion, acr, aks-rbac or all)"
-        required: true
-        default: "bastion"
-      confirm_apply:
-        description: "Type 'yes' to apply resources"
-        required: true
-        default: "no"
+      # RESOURCE:
+      #   description: "Which resource to deploy? (vnet, aks, bastion, acr, aks-rbac or all)"
+      #   required: true
+      #   default: "bastion"
+      # confirm_apply:
+      #   description: "Type 'yes' to apply resources"
+      #   required: true
+      #   default: "no"
 jobs:
   deploy:
     runs-on: ubuntu-latest
