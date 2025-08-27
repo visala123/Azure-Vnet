@@ -43,10 +43,11 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform/environments/ENV/RESOURCE
+        working-directory: terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}
     # defaults:
     #   run:
     #     working-directory: terraform/environments/${{ env.ENV }}
+    #   terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
     outputs:
       tfplan-exists: ${{ steps.tfplan.outputs.plan_created }}
       
