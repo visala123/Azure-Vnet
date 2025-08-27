@@ -43,7 +43,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
+        working-directory: terraform/environments/${{ github.event.inputs.environment }}
     # defaults:
     #   run:
     #  ENV: ${{ github.event.inputs.environment }}
