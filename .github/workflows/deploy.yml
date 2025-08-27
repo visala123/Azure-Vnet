@@ -71,8 +71,8 @@ jobs:
         with:
           name: tfplan-files
           path: |
-            terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}/tfplan.binary
-            terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}/plan.json
+            terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}/tfplan.binary
+            terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}/plan.json
 
       - name: Setup Infracost
         uses: infracost/actions/setup@v2.1.0
@@ -91,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: infracost-report
-          path: terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}/infracost-report.txt
+          path: terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}/infracost-report.txt
 
       - name: Show Infracost report
         run: |
