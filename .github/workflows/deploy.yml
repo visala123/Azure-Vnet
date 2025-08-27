@@ -14,18 +14,14 @@ on:
         type : choice 
         options : 
             - vnet 
-            - aks
             - bastion
+            - nsg
+            - acr
+            - aks
       confirm_apply:
         description: "Type 'yes' to apply resources"
         required: true
         default: "no"
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - run: echo "Deploying to ${{ github.event.inputs.environment }}"
-#       - run: echo "Deploying to ${{ github.event.inputs.RESOURCE }}"
 permissions:
   id-token: write
   contents: read
@@ -45,12 +41,6 @@ jobs:
     defaults:
       run:
         working-directory: terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
-    # defaults:
-    #   run:
-    #  ENV: ${{ github.event.inputs.environment }}
-     # RESOURCE: ${{ github.event.inputs.RESOURCE }}
-    #     working-directory: terraform/environments/${{ env.ENV }}
-    #   terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
     outputs:
       tfplan-exists: ${{ steps.tfplan.outputs.plan_created }}
       
@@ -62,21 +52,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
-
-      # - name: Azure Login
-      #   uses: azure/login@v2
-      #   with:
-      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
-      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      #     auth-type: IDENTITY
-          
-
-      # - name: Export ARM environment variables
-      #   run: |
-      #     echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
-      #     echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
-      #     echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
 
       - name: Terraform Init
         run: terraform init
@@ -96,8 +71,8 @@ jobs:
         with:
           name: tfplan-files
           path: |
-            terraform/environments/${{ env.ENV }}/tfplan.binary
-            terraform/environments/${{ env.ENV }}/plan.json
+            terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}/tfplan.binary
+            terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}/plan.json
 
       - name: Setup Infracost
         uses: infracost/actions/setup@v2.1.0
@@ -116,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: infracost-report
-          path: terraform/environments/${{ env.ENV }}/infracost-report.txt
+          path: terraform/environments/${{ env.ENV }}/${{ env.RESOURCE }}/infracost-report.txt
 
       - name: Show Infracost report
         run: |
@@ -133,7 +108,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform/environments/${{ github.event.inputs.environment }}
+        working-directory: terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
 
     steps:
       - name: Checkout code
@@ -144,23 +119,11 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Export ARM environment variables
-        run: |
-          echo "ARM_CLIENT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}" >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}" >> $GITHUB_ENV
-          echo "ARM_SUBSCRIPTION_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}" >> $GITHUB_ENV
-
       - name: Download Terraform plan files
         uses: actions/download-artifact@v4
         with:
           name: tfplan-files
-          path: terraform/environments/${{ github.event.inputs.environment }}
+          path: terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
 
       - name: Terraform Init
         run: terraform init
@@ -168,132 +131,3 @@ jobs:
       - name: Terraform Apply (waits for GitHub Environment approval)
         run: terraform apply -auto-approve tfplan.binary
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Terraform
-#         uses: hashicorp/setup-terraform@v3
-#         with:
-#           terraform_version: 1.6.6
-
-#       - name: Azure Login
-#         uses: azure/login@v2
-#         with:
-#           creds: ${{ secrets.AZURE_CREDENTIALS }}
-#       # - name: Terraform Init
-#       #   run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
-#       - name: Terraform Init
-#         run: |
-#           TF_DIR="terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}"
-#           if [ ! -d "$TF_DIR" ]; then
-#             echo "ERROR: Terraform directory $TF_DIR does not exist!"
-#             exit 1
-#           fi
-#           terraform -chdir="$TF_DIR" init
-#       # - name: Terraform Init
-#       #   run: terraform init
-#       # - name: Terraform Init
-#       #   run: terraform -chdir=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }} init
-      
-#       - name: Terraform Validate
-#         run: terraform validate
-
-#       - name: Terraform Plan
-#         run: |
-#           TF_DIR=terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}
-#           VAR_FILE="$TF_DIR/terraform.tfvars"
-#           if [ ! -f "$VAR_FILE" ]; then
-#           echo "ERROR: $VAR_FILE not found!"
-#           exit 1
-#           fi
-#           terraform -chdir="$TF_DIR" plan -var-file="$VAR_FILE" -out=tfplan.binary
-
-#       # - name: Terraform Plan
-#       #   id: tfplan
-#       #   run: |
-#       #     VAR_FILE="terraform.tfvars"
-#       #     if [ -f "$VAR_FILE" ]; then
-#       #       echo "Using $VAR_FILE"
-#       #     else
-#       #       echo "ERROR: $VAR_FILE not found!"
-#       #       exit 1
-#       #     fi
-#       #     terraform plan -var-file="$VAR_FILE" -out=tfplan.binary
-#       #     terraform show -json tfplan.binary > plan.json
-#       #     echo "plan_created=true" >> $GITHUB_OUTPUT
-
-#       - name: Upload Terraform Plan Files
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: tfplan-files
-#           path: |
-#             tfplan.binary
-#             plan.json
-
-#       - name: Setup Infracost
-#         uses: infracost/actions/setup@v2.1.0
-#         with:
-#           api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-#       - name: Run Infracost Breakdown with Usage
-#         run: |
-#           infracost breakdown \
-#             --path=plan.json \
-#             --format=table \
-#             --out-file=infracost-report.txt
-
-#       - name: Upload Infracost Report artifact
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: infracost-report
-#           path: infracost-report.txt
-
-#       - name: Show Infracost report
-#         run: cat infracost-report.txt
-
-#   apply:
-#     name: Terraform Apply with Approval
-#     needs: plan
-#     runs-on: ubuntu-latest
-#     env:
-#       ENV: ${{ github.event.inputs.ENV }}
-#       RESOURCE: ${{ github.event.inputs.RESOURCE }}
-#     defaults:
-#       run:
-#         working-directory: terraform/environments/${{ github.event.inputs.ENV }}/${{ github.event.inputs.RESOURCE }}
-#     if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm_apply == 'yes' && github.ref == 'refs/heads/main'
-
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Terraform
-#         uses: hashicorp/setup-terraform@v3
-#         with:
-#           terraform_version: 1.6.6
-
-#       - name: Azure Login
-#         uses: azure/login@v2
-#         with:
-#           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-#       - name: Download Terraform plan files
-#         uses: actions/download-artifact@v4
-#         with:
-#           name: tfplan-files
-#           path: .
-
-#       - name: Terraform Init
-#         run: terraform init
-
-#       - name: Terraform Apply
-#         run: |
-#           VAR_FILE="terraform.tfvars"
-#           if [ -f "$VAR_FILE" ]; then
-#             echo "Using $VAR_FILE"
-#           else
-#             echo "ERROR: $VAR_FILE not found!"
-#             exit 1
-#           fi
-#           terraform apply -var-file="$VAR_FILE" -auto-approve tfplan.binary
