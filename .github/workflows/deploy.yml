@@ -34,8 +34,6 @@ jobs:
     name: Terraform Plan and Cost Estimate
     runs-on: ubuntu-latest
     env:
-      ENV: ${{ github.event.inputs.environment }}
-      RESOURCE: ${{ github.event.inputs.RESOURCE }}
       ARM_USE_OIDC: true
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -46,6 +44,8 @@ jobs:
         working-directory: terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
     # defaults:
     #   run:
+    #  ENV: ${{ github.event.inputs.environment }}
+     # RESOURCE: ${{ github.event.inputs.RESOURCE }}
     #     working-directory: terraform/environments/${{ env.ENV }}
     #   terraform/environments/${{ github.event.inputs.environment }}/${{ github.event.inputs.RESOURCE }}
     outputs:
