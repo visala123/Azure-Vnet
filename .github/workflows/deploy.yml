@@ -55,7 +55,7 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          auth-type: federated
+          auth-type: IDENTITY
 
       - name: Export ARM environment variables
         run: |
