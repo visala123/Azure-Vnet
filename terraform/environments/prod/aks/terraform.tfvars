@@ -10,8 +10,8 @@ aks_dns_prefix     = "aksdev"
 kubernetes_version = "1.32"      # pick a supported version in your region
 private_cluster_enable = true
 network_plugin     = "azure"
-service_cidr       = "10.20.0.0/24"
-dns_service_ip     = "10.20.0.30"
+service_cidr       = "10.220.0.0/24"
+dns_service_ip     = "10.220.0.30"
 outbound_type      = "loadBalancer"
 managed_outbound_ip_count = 1
 
