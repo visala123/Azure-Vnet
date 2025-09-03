@@ -19,7 +19,7 @@ permissions:
   contents: read
 jobs:
   plan:
-    name: Terraform Plan and Cost Estimate
+    name: inastalling prerequisites
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     env:
@@ -40,6 +40,12 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Enable preview extension support
+        run: az config set extension.dynamic_install_allow_preview=true
+
+      - name: Update SSH extension
+        run: az extension add --name ssh --upgrade
       - name: Install prerequisites on bastion VM
         run: |
             az ssh vm --name ${{ github.event.inputs.bastion_name }} \
