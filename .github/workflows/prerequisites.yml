@@ -45,4 +45,6 @@ jobs:
             az ssh vm --name ${{ github.event.inputs.bastion_name }} \
               --resource-group ${{ github.event.inputs.bastion_rg }} \
               --command "
+              az --version
+              "
 
