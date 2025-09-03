@@ -1,0 +1,48 @@
+name: Prerequisites to install on bastion
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (dev or prod)"
+        required: true
+        type : environment
+      bastion_name:
+        description: 'Name of the bastion VM'
+        required: true
+      bastion_rg:
+        description: 'Resource group of the bastion VM'
+        required: true  
+      
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  plan:
+    name: Terraform Plan and Cost Estimate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      ARM_USE_OIDC: true
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ENV: ${{ github.event.inputs.environment }}
+      RESOURCE: ${{ github.event.inputs.RESOURCE }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Install prerequisites on bastion VM
+        run: |
+            az ssh vm --name ${{ github.event.inputs.bastion_name }} \
+              --resource-group ${{ github.event.inputs.bastion_rg }} \
+              --command "
+
